@@ -356,9 +356,12 @@ handle_checkin(Pid, State) ->
     end.
 
 handle_worker_exit(DeadPid, State) ->
-    #state{waiting = Waiting, overflow = Overflow} = State,
-    %% XXX: optimize serveral ets:delete calls
     true = ets:delete(State#state.monitors, DeadPid),
+    Workers = queue:filter(fun (P) -> P =/= DeadPid end, State#state.workers),
+    maybe_new_worker(State#state{workers = Workers}).
+
+maybe_new_worker(State) ->
+    #state{waiting = Waiting, overflow = Overflow} = State,
     case queue:out(Waiting) of
         {{value, {{FromPid, _} = From, Timeout, StartTime}}, Left} ->
             case wait_valid(StartTime, Timeout) of
@@ -372,7 +375,7 @@ handle_worker_exit(DeadPid, State) ->
                             State
                     end;
                 false ->
-                    handle_worker_exit(DeadPid, State#state{waiting = Left})
+                    maybe_new_worker(State#state{waiting = Left})
             end;
         {empty, _} when Overflow > 0 ->
             State#state{overflow = Overflow - 1};
