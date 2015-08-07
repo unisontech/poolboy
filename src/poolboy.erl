@@ -27,8 +27,8 @@
     backoff     :: undefined | backoff()
 }).
 
--opaque state()   :: #state{}.
--opaque backoff() :: #backoff{}.
+-type state()   :: #state{}.
+-type backoff() :: #backoff{}.
 
 
 %%%===================================================================
